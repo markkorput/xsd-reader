@@ -16,6 +16,7 @@ describe XsdReader::Element do
   end
 
   it "gives child elements defined within a complex type" do
+    # byebug
     expect(@element.elements.map(&:name)).to eq [
       "MessageHeader",
       "UpdateIndicator",
@@ -69,15 +70,49 @@ describe XsdReader::Element do
   end
 
   describe "#elements" do
+
     it "includes elements within a choice node" do
       el = @element.elements[3]
       expect(el.name).to eq 'CatalogTransfer'
       elements_without = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TransferringFrom", "TransferringTo"]
-      elements_extra = ["TerritoryCode", "ExcludedTerritoryCode"]
+      elements_with = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TerritoryCode", "ExcludedTerritoryCode", "TransferringFrom", "TransferringTo"]
       expect(el.complex_type.sequences.map{|seq| seq.elements}.flatten.map(&:name)).to eq elements_without
-      expect(el.complex_type.sequences[0].choices.map{|ch| ch.elements}.flatten.map(&:name)).to eq elements_extra
-      expect(el.complex_type.all_elements.map(&:name)).to eq elements_without + elements_extra
-    end    
+      expect(el.complex_type.all_elements.map(&:name)).to eq elements_with
+      expect(el.complex_type.sequences[0].choices.map{|ch| ch.elements}.flatten.map(&:name)).to eq elements_with - elements_without      
+    end
+
+    it "gives child elements in the right order" do
+      expected = [
+        "CommercialModelType",
+        "Usage",
+        "AllDealsCancelled",
+        "TakeDown",
+        "TerritoryCode",
+        "ExcludedTerritoryCode",
+        "DistributionChannel",
+        "ExcludedDistributionChannel",
+        "PriceInformation",
+        "IsPromotional",
+        "PromotionalCode",
+        "ValidityPeriod",
+        "ConsumerRentalPeriod",
+        "PreOrderReleaseDate",
+        "ReleaseDisplayStartDate",
+        "TrackListingPreviewStartDate",
+        "CoverArtPreviewStartDate",
+        "ClipPreviewStartDate",
+        "PreOrderPreviewDate",
+        "IsExclusive",
+        "RelatedReleaseOfferSet",
+        "PhysicalReturns",
+        "NumberOfProductsPerCarton",
+        "RightsClaimPolicy",
+        "WebPolicy"]
+
+      # byebug
+
+      expect(@reader['NewReleaseMessage']['DealList']['ReleaseDeal']['Deal']['DealTerms'].elements.map(&:name)).to eq expected
+    end
   end
 
   # # this is pretty slow...

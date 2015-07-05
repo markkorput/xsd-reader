@@ -1,6 +1,9 @@
+require 'logger'
+
 module XsdReader
 
   module Shared
+
     attr_reader :options
 
     def initialize(_opts = {})
@@ -14,6 +17,14 @@ module XsdReader
 
     def node
       options[:node]
+    end
+
+    def nodes
+      node.search("./*")
+    end
+
+    def [](el_name)
+      elements.find{|el| el.name == el_name}
     end
 
     #
@@ -36,46 +47,89 @@ module XsdReader
     end
 
     #
+    # Node to class mapping
+    #
+    def class_for(n)
+      class_mapping = {
+        'xs:element' => Element,
+        'xs:attribute' => Attribute,
+        'xs:choice' => Choice,
+        'xs:complexType' => ComplexType,
+        'xs:sequence' => Sequence,
+        'xs:simpleContent' => SimpleContent,
+        'xs:extension' => Extension
+      }
+
+      return class_mapping[n.is_a?(Nokogiri::XML::Node) ? n.name : n]
+    end
+
+    def node_to_object(node)
+      fullname = [node.namespace ? node.namespace.prefix : nil, node.name].reject{|str| str.nil? || str == ''}.join(':')
+      klass = class_for(fullname)
+      # logger.debug "node_to_object, klass: #{klass.to_s}, fullname: #{fullname}"
+      klass.nil? ? nil : klass.new(options.merge(:node => node))
+    end
+
+
+    #
     # Child objects
     #
-    def map_children(xml_name, klass)
+
+    def map_children(xml_name, klass = nil)
+      klass ||= class_for(xml_name)
       node.search("./#{xml_name}").map{|node| klass.new(options.merge(:node => node))}
     end
 
     def direct_elements
-      map_children("xs:element", Element)
+      map_children("xs:element")
     end
 
     def elements
       direct_elements
     end
 
-    def all_elements
+    def unordered_elements
       direct_elements + (complex_type ? complex_type.all_elements : []) + sequences.map(&:all_elements).flatten + choices.map(&:all_elements).flatten
     end
 
+    def ordered_elements
+      # loop over each interpretable child xml node, and if we can convert a child node
+      # to an XsdReader object, let it give its compilation of all_elements
+      nodes.map{|node| node_to_object(node)}.compact.map do |obj|
+        obj.is_a?(Element) ? obj : obj.all_elements
+      end.flatten
+    end
+
+    def all_elements
+      ordered_elements + (linked_complex_type ? linked_complex_type.ordered_elements : [])
+    end
+
     def attributes
-      map_children('xs:attribute', Attribute)
+      map_children('xs:attribute')
     end
 
     def sequences
-      map_children("xs:sequence", Sequence)
+      map_children("xs:sequence",)
     end
 
     def choices
-      map_children("xs:choice", Choice)
+      map_children("xs:choice")
     end
 
     def complex_types
-      map_children("xs:complexType", ComplexType)
+      map_children("xs:complexType")
     end
 
     def complex_type
       complex_types.first
     end
 
+    def linked_complex_type
+      complex_type_by_name(type) || complex_type_by_name(type_name)
+    end
+
     def simple_contents
-      map_children("xs:simpleContent", SimpleContent)
+      map_children("xs:simpleContent")
     end
 
     def simple_content
@@ -83,7 +137,7 @@ module XsdReader
     end
 
     def extensions
-      map_children("xs:extension", Extension)
+      map_children("xs:extension")
     end
 
     def extension

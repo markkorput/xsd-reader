@@ -9,19 +9,16 @@ module XsdReader
       all_elements
     end
 
-    def [](el_name)
-      elements.find{|el| el.name == el_name}
-    end
-
     def attributes
       super + (complex_type ? complex_type.attributes : [])
     end
 
     def complex_type
-      super || complex_type_by_name(type) || complex_type_by_name(type_name)
+      super || linked_complex_type
     end
 
     def family_tree(stack = [])
+      logger.warn('Usage of the family tree function is not recommended as it can take very long to execute and is very memory intensive')
       return @_cached_family_tree if @_cached_family_tree 
 
       if stack.include?(name) # avoid endless recursive loop
