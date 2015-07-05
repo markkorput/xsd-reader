@@ -4,28 +4,21 @@ module XsdReader
   class Element
     include Shared
 
-    def name
-      node.attributes['name'].value
+    def elements(opts = {})
+      return super if opts[:direct] == true
+      all_elements
     end
 
-    def child_elements
-      elements + (complex_type ? complex_type.all_elements : [])
+    def [](el_name)
+      elements.find{|el| el.name == el_name}
     end
 
-    def full_type
-      node.attributes['type'] ? node.attributes['type'].value : nil
-    end
-
-    def type_name
-      full_type ? full_type.split(':').last : nil
-    end
-
-    def type_namespace
-      full_type ? full_type.split(':').first : nil
+    def attributes
+      super + (complex_type ? complex_type.attributes : [])
     end
 
     def complex_type
-      super || complex_type_by_name(full_type) || complex_type_by_name(type_name)
+      super || complex_type_by_name(type) || complex_type_by_name(type_name)
     end
 
     def family_tree(stack = [])
@@ -36,10 +29,10 @@ module XsdReader
         return nil
       end
 
-      return "type:#{type_name}" if child_elements.length == 0
+      return "type:#{type_name}" if elements.length == 0
 
-      result = child_elements.inject({}) do |tree, child_element|
-        tree.merge child_element.name => child_element.family_tree(stack + [name])
+      result = elements.inject({}) do |tree, element|
+        tree.merge element.name => element.family_tree(stack + [name])
       end
 
       @_cached_family_tree = result if stack == [] # only cache if this was the first one called (otherwise there will be way too many caches)
