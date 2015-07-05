@@ -23,8 +23,13 @@ module XsdReader
       node.search("./*")
     end
 
-    def [](el_name)
-      elements.find{|el| el.name == el_name}
+    def [](name)
+      # starts with an @-symbol? Then we're looking for an attribute
+      if name =~ /^\@/ 
+        attr_name = name.gsub(/^\@/, '')
+        return attributes.find{|attr| attr.name == attr_name}
+      end
+      elements.find{|el| el.name == name}
     end
 
     #
