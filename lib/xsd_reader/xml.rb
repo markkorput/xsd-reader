@@ -27,7 +27,7 @@ module XsdReader
     end
 
     def schema
-      @schema ||= Schema.new(options.merge(:node => schema_node))
+      node_to_object(schema_node)
     end
 
     def elements

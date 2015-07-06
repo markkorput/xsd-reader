@@ -56,6 +56,7 @@ module XsdReader
     #
     def class_for(n)
       class_mapping = {
+        'xs:schema' => Schema,
         'xs:element' => Element,
         'xs:attribute' => Attribute,
         'xs:choice' => Choice,
@@ -109,6 +110,10 @@ module XsdReader
       ordered_elements + (linked_complex_type ? linked_complex_type.ordered_elements : [])
     end
 
+    def child_elements?
+      elements.length > 0
+    end
+
     def attributes
       map_children('xs:attribute')
     end
@@ -152,10 +157,49 @@ module XsdReader
     #
     # Related objects
     #
+
+    def parent
+      if node && node.respond_to?(:parent) && node.parent
+        return node_to_object(node.parent)
+      end
+
+      nil
+    end
+
+    # def ancestors
+    #   result = [parent]
+
+    #   while result.first != nil
+    #     result.unshift (result.first.respond_to?(:parent) ? result.first.parent : nil)
+    #   end
+
+    #   result.compact
+    # end
+
+    def schema
+      p = node.parent
+
+      while p.name != 'schema' && !p.nil?
+        p = p.parent
+      end
+      p.nil? ? nil : node_to_object(p)
+    end
+
     def complex_type_by_name(name)
       ct = node.search("//xs:complexType[@name=\"#{name}\"]").first
       ct.nil? ? nil : ComplexType.new(options.merge(:node => ct))
     end
+
+    def elements_by_type(type_name)
+      els = schema.node.search("//xs:element[@type=\"#{type_name}\"]")
+
+      schema.node.search("//xs:element[@type=\"#{type_name}\"]")
+
+      while els.length == 0
+
+      end
+    end
+
   end
 
 end # module XsdReader

@@ -17,6 +17,32 @@ module XsdReader
       super || linked_complex_type
     end
 
+    def min_occurs
+      node.attributes['minOccurs'] ? node.attributes['minOccurs'].value.to_i : nil
+    end
+
+    def max_occurs
+      if val = node.attributes['maxOccurs'] ? node.attributes['maxOccurs'].value : nil
+        val == 'unbounded' ? :unbounded : val.to_i
+      end
+    end
+
+    def multiple_allowed?
+      max_occurs == :unbounded || max_occurs.to_i > 0
+    end
+
+    def required?
+      min_occurs.nil? || min_occurs.to_i > 0 # TODO; consider if the element is part of a choice definition?
+    end
+
+    def optional?
+      !required?
+    end
+
+    def parent
+      node.parent
+    end
+
     def family_tree(stack = [])
       logger.warn('Usage of the family tree function is not recommended as it can take very long to execute and is very memory intensive')
       return @_cached_family_tree if @_cached_family_tree 
