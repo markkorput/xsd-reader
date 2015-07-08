@@ -30,7 +30,7 @@ node = reader['NewReleaseMessage']
 node.elements.map(&:name) # => ['MessageHeader', 'UpdateIndicator', 'IsBackfill', 'CatalogTransfer', 'WorkList', 'CueSheetList', 'ResourceList', 'CollectionList', 'ReleaseList', 'DealList']
 ```
 
-Get attributes element
+Get attributes
 ```ruby
 reader['NewReleaseMessage']['MessageHeader'].attributes.map(&:name) # => ['LanguageAndScriptCode']
 ```
