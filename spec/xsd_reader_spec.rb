@@ -17,6 +17,12 @@ describe XsdReader do
     expect(@reader['NewReleaseMessage']['ReleaseList']['Release'].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
   end
 
+  it "gives a specific element in the hierarchy when passing an array argument to the square brackets ([]) operator" do
+    # this supports linking:
+    expect(@reader[['NewReleaseMessage', 'ResourceList', 'SoundRecording']].name).to eq 'SoundRecording'
+    expect(@reader[['NewReleaseMessage', 'ResourceList', 'SoundRecording']].multiple_allowed?).to eq true
+  end
+
   it "provides a `child_elements?` convenience method" do
     expect(@reader['NewReleaseMessage'].child_elements?).to be true
     expect(@reader['NewReleaseMessage']['MessageHeader']['MessageThreadId'].child_elements?).to be false
@@ -46,11 +52,11 @@ describe XsdReader do
     expect(@reader['NewReleaseMessage']['CollectionList'].optional?).to be true
   end
 
-  it "gives an array recursive parent names `ancestors` method" do
-    skip 'Not yet (properly) imlemented'
-    # byebug
-    expect(@reader.ancestors).to eq []
-    expect(@reader['NewReleaseMessage'].ancestors).to eq []
-    expect(@reader['NewReleaseMessage']['DealList']['ReleaseDeal'].ancestors.map(&:name)).to eq ['NewReleasMessage', 'DealList']
-  end
+  # it "gives an array recursive parent names `ancestors` method" do
+  #   skip 'Not yet (properly) imlemented'
+  #   # byebug
+  #   expect(@reader.ancestors).to eq []
+  #   expect(@reader['NewReleaseMessage'].ancestors).to eq []
+  #   expect(@reader['NewReleaseMessage']['DealList']['ReleaseDeal'].ancestors.map(&:name)).to eq ['NewReleasMessage', 'DealList']
+  # end
 end
