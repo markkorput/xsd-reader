@@ -7,20 +7,21 @@ XsdReader provides easy and flexible access to XSD information
 
 Rubygems:
 
-`
+```
 gem install xsd-reader
-`
+```
 
 Bundler: 
 
-`
+```ruby
 gem 'xsd-reader'
-`
+````
 
 ## Examples
 
 Load xsd
 ```ruby
+require 'xsd_reader'
 reader = XsdReader::XML.new(:xsd_file => 'ddex-ern-v36.xsd')
 ```
 
