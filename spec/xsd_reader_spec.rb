@@ -23,6 +23,13 @@ describe XsdReader do
     expect(@reader[['NewReleaseMessage', 'ResourceList', 'SoundRecording']].multiple_allowed?).to eq true
   end
 
+  it "automatically turns symbol arguments in the square brackets operator ([]) into strings" do
+    expect(@reader[:NewReleaseMessage].name).to eq 'NewReleaseMessage'
+    # this supports linking:
+    expect(@reader[:NewReleaseMessage]['ReleaseList'][:Release].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
+    expect(@reader[:NewReleaseMessage, 'ReleaseList', :Release].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
+  end
+
   it "provides a `child_elements?` convenience method" do
     expect(@reader['NewReleaseMessage'].child_elements?).to be true
     expect(@reader['NewReleaseMessage']['MessageHeader']['MessageThreadId'].child_elements?).to be false

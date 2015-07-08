@@ -23,22 +23,22 @@ module XsdReader
       node.search("./*")
     end
 
-    def [](name)
-      # got an array of name? recursive search through generations
-      if name.is_a?(Array)
-        el = self
-        name.each{|child_name| el = el.nil? ? nil : el.elements.find{|child| child.name == child_name}}
-        return el
+    def [](*args)
+      # now name is always an array
+      names = args.flatten
+
+      result = self
+
+      names.each do |curname|
+        if curname.to_s =~ /^\@/ 
+          attr_name = curname.to_s.gsub(/^\@/, '')
+          result = result.attributes.find{|attr| attr.name == attr_name}
+        else
+          result = result.nil? ? nil : result.elements.find{|child| child.name == curname.to_s}
+        end
       end
 
-      # starts with an @-symbol? Then we're looking for an attribute
-
-      if name =~ /^\@/ 
-        attr_name = name.gsub(/^\@/, '')
-        return attributes.find{|attr| attr.name == attr_name}
-      end
-
-      elements.find{|el| el.name == name}
+      return result
     end
 
     #
