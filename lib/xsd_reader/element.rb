@@ -10,11 +10,11 @@ module XsdReader
     end
 
     def attributes
-      super + (complex_type ? complex_type.attributes : [])
+      @_element_attributes ||= super + (complex_type ? complex_type.attributes : [])
     end
 
     def complex_type
-      super || linked_complex_type
+      @_element_complex_type ||= super || linked_complex_type
     end
 
     def min_occurs
