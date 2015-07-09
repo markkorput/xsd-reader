@@ -110,7 +110,7 @@ module XsdReader
     end
 
     def direct_elements
-      map_children("xs:element")
+      @direct_elements ||= map_children("xs:element")
     end
 
     def elements
@@ -130,7 +130,7 @@ module XsdReader
     end
 
     def all_elements
-      ordered_elements + (linked_complex_type ? linked_complex_type.ordered_elements : [])
+      @all_elements ||= ordered_elements + (linked_complex_type ? linked_complex_type.ordered_elements : [])
     end
 
     def child_elements?
@@ -138,19 +138,19 @@ module XsdReader
     end
 
     def attributes
-      map_children('xs:attribute')
+      @attributes ||= map_children('xs:attribute')
     end
 
     def sequences
-      map_children("xs:sequence",)
+      @sequences ||= map_children("xs:sequence",)
     end
 
     def choices
-      map_children("xs:choice")
+      @choices ||= map_children("xs:choice")
     end
 
     def complex_types
-      map_children("xs:complexType")
+      @complex_types ||= map_children("xs:complexType")
     end
 
     def complex_type
@@ -158,11 +158,11 @@ module XsdReader
     end
 
     def linked_complex_type
-      complex_type_by_name(type) || complex_type_by_name(type_name)
+      @linked_complex_type ||= complex_type_by_name(type) || complex_type_by_name(type_name)
     end
 
     def simple_contents
-      map_children("xs:simpleContent")
+      @simple_contents ||= map_children("xs:simpleContent")
     end
 
     def simple_content
@@ -170,7 +170,7 @@ module XsdReader
     end
 
     def extensions
-      map_children("xs:extension")
+      @extensions ||= map_children("xs:extension")
     end
 
     def extension

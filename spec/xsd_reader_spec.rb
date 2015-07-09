@@ -6,6 +6,27 @@ describe XsdReader do
     XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-ern-v36.xsd')))
   }
 
+  # do caching tests first, so they can show the initial -cacheless- situation 
+  describe 'caching' do
+    it 'start with caches empty' do
+      cache_names = [:direct_elements, :attributes, :all_elements, :sequences, :choices, :complex_types, :linked_complex_type, :simple_contents, :extensions]
+      expect(cache_names.map{|name| "#{name}: #{reader.instance_variable_get("@#{name}").inspect}"}).to eq cache_names.map{|name| "#{name}: #{nil.inspect}"}
+    end
+
+    it 'caches some relationships to improve performance' do
+      expect(reader.instance_variable_get('@schema')).to eq nil
+      expect(reader.instance_variable_get('@elements')).to eq nil
+      # the next line causes new caches to be created
+      expect(reader['NewReleaseMessage'].instance_variable_get('@all_elements')).to eq nil
+      expect(reader.instance_variable_get('@schema').class).to eq XsdReader::Schema
+      expect(reader.instance_variable_get('@elements').length).to eq 2
+      # the next line causes new caches to be created
+      expect(reader['NewReleaseMessage']['NewReleaseMessage'].instance_variable_get('@all_elements')).to eq nil
+      expect(reader['NewReleaseMessage'].instance_variable_get('@all_elements').first.name).to eq 'MessageHeader'
+      # etc.
+    end
+  end
+
   it "gives all child element definitions for a certain node through the `elements` method" do
     expect(reader.elements.map(&:name)).to eq ['NewReleaseMessage', 'CatalogListMessage']
     expect(reader.elements[0].elements[0].name).to eq 'MessageHeader'
@@ -71,5 +92,5 @@ describe XsdReader do
   #   expect(reader.ancestors).to eq []
   #   expect(reader['NewReleaseMessage'].ancestors).to eq []
   #   expect(reader['NewReleaseMessage']['DealList']['ReleaseDeal'].ancestors.map(&:name)).to eq ['NewReleasMessage', 'DealList']
-  # end
+  # end     
 end
