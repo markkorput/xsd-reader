@@ -30,6 +30,12 @@ describe XsdReader do
     expect(@reader[:NewReleaseMessage, 'ReleaseList', :Release].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
   end
 
+  it "should return nil and not raise an exceptions when the square brackets ([]) operator gets invalid input" do
+    expect{
+      expect(@reader[:NewReleaseMessage, 'Nothing', '@Whatever', 'Foo']).to eq nil
+    }.to_not raise_error
+  end
+
   it "provides a `child_elements?` convenience method" do
     expect(@reader['NewReleaseMessage'].child_elements?).to be true
     expect(@reader['NewReleaseMessage']['MessageHeader']['MessageThreadId'].child_elements?).to be false

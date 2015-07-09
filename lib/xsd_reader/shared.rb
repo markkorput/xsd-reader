@@ -30,11 +30,12 @@ module XsdReader
       result = self
 
       names.each do |curname|
+        next if result.nil?
         if curname.to_s =~ /^\@/ 
           attr_name = curname.to_s.gsub(/^\@/, '')
           result = result.attributes.find{|attr| attr.name == attr_name}
         else
-          result = result.nil? ? nil : result.elements.find{|child| child.name == curname.to_s}
+          result = result.elements.find{|child| child.name == curname.to_s}
         end
       end
 
@@ -58,6 +59,19 @@ module XsdReader
 
     def type_namespace
       type ? type.split(':').first : nil
+    end
+
+    # base stuff belongs to extension type objects only, but let's be flexible
+    def base
+      node.attributes['base'] ? node.attributes['base'].value : nil
+    end
+
+    def base_name
+      base ? base.type.split(':').last : nil
+    end
+
+    def base_namespace
+      base ? base.type.split(':').first : nil
     end
 
     #
