@@ -8,6 +8,7 @@ Gem::Specification.new do |s|
   s.executables = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
   s.add_dependency 'nokogiri'
+  s.add_dependency 'rest-client'
   s.add_development_dependency 'rspec'
 
   s.author = "Mark van de Korput"

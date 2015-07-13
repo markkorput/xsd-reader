@@ -1,3 +1,5 @@
+require 'rest-client'
+
 module XsdReader
   class Import
     include Shared
@@ -19,7 +21,15 @@ module XsdReader
     end
 
     def download
-      nil
+      download_uri(self.uri)
+    end
+
+    private
+
+    def download_uri(uri)
+      logger.info "Downloading import schema from (uri)"
+      response = RestClient.get uri
+      return response.body
     end
   end # class Import
 end

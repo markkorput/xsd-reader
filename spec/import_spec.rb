@@ -22,8 +22,9 @@ describe XsdReader::Import do
   end
 
   it "downloads related xsd files" do
-    expected = File.read(File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'avs.xsd')))
-    expect(import.download).to eq expected
+    r1 = XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'avs.xsd')))
+    r2 = XsdReader::XML.new(:xsd_xml => import.download)
+    expect(r1.elements.map(&:name)).to eq r2.elements.map(&:name)
+    expect(r1.simple_types.map(&:name)).to eq r2.simple_types.map(&:name)
   end
-
 end # describe XsdReader::Import
