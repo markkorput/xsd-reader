@@ -4,7 +4,12 @@ require 'nokogiri'
 module XsdReader
 
   class XML
-    include Shared
+    attr_reader :options
+
+    def initialize(_opts = {})
+      @options = _opts || {}
+      raise "#{self.class.to_s}.new expects a hash parameter" if !@options.is_a?(Hash)
+    end
 
     def xsd_from_uri
       # @xsd_from_uri ||= options[:xsd_uri].nil ? nil : open(options[:xsd_uri])
@@ -22,20 +27,33 @@ module XsdReader
       @doc ||= Nokogiri.XML(xml)
     end
 
+    def node
+      nil
+    end
+
     def schema_node
       doc.root.name == 'schema' ? doc.root : nil
     end
 
     def schema
-      @schema ||= node_to_object(schema_node)
+      @schema ||= Schema.new(self.options.merge(:node => schema_node)) # , :logger => logger, :xsd_file => options[:xsd_file])
     end
 
-    def node
-      super || schema_node
+    # forwards most functions to schema
+    def [](*args)
+      schema[*args]
     end
 
     def elements
-      @elements ||= schema.elements
+      schema.elements
+    end
+
+    def imports
+      schema.imports
+    end
+
+    def simple_types
+      schema.simple_types
     end
   end # class XML
 

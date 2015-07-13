@@ -19,7 +19,7 @@ describe XsdReader do
       # the next line causes new caches to be created
       expect(reader['NewReleaseMessage'].instance_variable_get('@all_elements')).to eq nil
       expect(reader.instance_variable_get('@schema').class).to eq XsdReader::Schema
-      expect(reader.instance_variable_get('@elements').length).to eq 2
+      expect(reader.schema.instance_variable_get('@direct_elements').length).to eq 2
       # the next line causes new caches to be created
       expect(reader['NewReleaseMessage']['NewReleaseMessage'].instance_variable_get('@all_elements')).to eq nil
       expect(reader['NewReleaseMessage'].instance_variable_get('@all_elements').first.name).to eq 'MessageHeader'
@@ -35,6 +35,7 @@ describe XsdReader do
   it "gives a child element object through the square brackets ([]) operator (matching by name)" do
     expect(reader['NewReleaseMessage'].name).to eq 'NewReleaseMessage'
     # this supports linking:
+    # byebug
     expect(reader['NewReleaseMessage']['ReleaseList']['Release'].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
   end
 
@@ -92,5 +93,15 @@ describe XsdReader do
   #   expect(reader.ancestors).to eq []
   #   expect(reader['NewReleaseMessage'].ancestors).to eq []
   #   expect(reader['NewReleaseMessage']['DealList']['ReleaseDeal'].ancestors.map(&:name)).to eq ['NewReleasMessage', 'DealList']
-  # end     
+  # end    
+
+  describe "imports"  do
+    it "finds imported types for elements" do
+      simple_type = reader['NewReleaseMessage']['DealList']['ReleaseDeal']['Deal']['DealTerms']['WebPolicy']['AccessLimitation'].linked_simple_type
+      expect(simple_type.class).to eq XsdReader::SimpleType
+      expect(simple_type.name).to eq 'AccessLimitation'
+      # byebug
+      expect(simple_type.schema).to be reader.imports[0].reader.schema
+    end
+  end
 end

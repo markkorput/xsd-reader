@@ -98,17 +98,20 @@ module XsdReader
       fullname = [node.namespace ? node.namespace.prefix : nil, node.name].reject{|str| str.nil? || str == ''}.join(':')
       klass = class_for(fullname)
       # logger.debug "node_to_object, klass: #{klass.to_s}, fullname: #{fullname}"
-      klass.nil? ? nil : klass.new(options.merge(:node => node))
+      klass.nil? ? nil : klass.new(options.merge(:node => node, :schema => schema))
     end
-
 
     #
     # Child objects
     #
 
-    def map_children(xml_name, klass = nil)
-      klass ||= class_for(xml_name)
-      node.search("./#{xml_name}").map{|node| klass.new(options.merge(:node => node))}
+    def mappable_children(xml_name)
+      node.search("./#{xml_name}").to_a
+    end
+
+    def map_children(xml_name)
+      # puts "Map Children with #{xml_name} for #{self.class.to_s}"
+      mappable_children(xml_name).map{|current_node| node_to_object(current_node)}
     end
 
     def direct_elements
@@ -160,7 +163,7 @@ module XsdReader
     end
 
     def linked_complex_type
-      @linked_complex_type ||= complex_type_by_name(type) || complex_type_by_name(type_name)
+      @linked_complex_type ||= object_by_name('xs:complexType', type) || object_by_name('xs:complexType', type_name) 
     end
 
     def simple_contents
@@ -179,12 +182,12 @@ module XsdReader
       extensions.first
     end
 
-    def imports
-      @imports ||= map_children("xs:import")
-    end
-
     def simple_types
       @simple_types ||= map_children("xs:simpleType")
+    end
+
+    def linked_simple_type
+      @linked_simple_type ||= object_by_name('xs:simpleType', type) || object_by_name('xs:simpleType', type_name)
     end
 
     #
@@ -199,28 +202,25 @@ module XsdReader
       nil
     end
 
-    # def ancestors
-    #   result = [parent]
-
-    #   while result.first != nil
-    #     result.unshift (result.first.respond_to?(:parent) ? result.first.parent : nil)
-    #   end
-
-    #   result.compact
-    # end
-
     def schema
-      p = node.parent
-
-      while p.name != 'schema' && !p.nil?
-        p = p.parent
-      end
-      p.nil? ? nil : node_to_object(p)
+      return options[:schema] if options[:schema]
+      schema_node = node.search('//xs:schema')[0]
+      return schema_node.nil? ? nil : node_to_object(schema_node)
     end
 
-    def complex_type_by_name(name)
-      ct = node.search("//xs:complexType[@name=\"#{name}\"]").first
-      ct.nil? ? nil : ComplexType.new(options.merge(:node => ct))
+    def object_by_name(xml_name, name)
+      # find in local schema, then look in imported schemas
+      nod = node.search("//#{xml_name}[@name=\"#{name}\"]").first
+      return node_to_object(nod) if nod
+
+      # try to find in any of the importers
+      self.schema.imports.each do |import|
+        if obj = import.reader.schema.object_by_name(xml_name, name)
+          return obj
+        end
+      end
+
+      return nil
     end
 
     def elements_by_type(type_name)
