@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/spec_helper'
 
 describe XsdReader::Import do
   let(:reader){
-    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-ern-v36.xsd')))
+    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'ddex-ern-v36.xsd')))
   }
 
   let(:import){
@@ -27,11 +27,11 @@ describe XsdReader::Import do
 
   it "gives a download_path to save the imported xsd file to, if an xsd_file options is provided, containing the path to the parent xsd" do
     expect(import.options[:xsd_file]).to eq reader.options[:xsd_file]
-    expect(import.download_path).to eq File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'avs.xsd'))
+    expect(import.download_path).to eq File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'avs.xsd'))
   end
 
   it "downloads related xsd files" do
-    r1 = XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'avs.xsd')))
+    r1 = XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'avs.xsd')))
     r2 = import.reader
     expect(r1.elements.map(&:name)).to eq r2.elements.map(&:name)
     expect(r1.simple_types.map(&:name)).to eq r2.simple_types.map(&:name)
