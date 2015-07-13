@@ -30,6 +30,10 @@ module XsdReader
       @schema ||= node_to_object(schema_node)
     end
 
+    def node
+      super || schema_node
+    end
+
     def elements
       @elements ||= schema.elements
     end

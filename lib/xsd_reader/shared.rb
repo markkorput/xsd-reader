@@ -86,7 +86,8 @@ module XsdReader
         'xs:complexType' => ComplexType,
         'xs:sequence' => Sequence,
         'xs:simpleContent' => SimpleContent,
-        'xs:extension' => Extension
+        'xs:extension' => Extension,
+        'xs:import' => Import
       }
 
       return class_mapping[n.is_a?(Nokogiri::XML::Node) ? n.name : n]
@@ -175,6 +176,10 @@ module XsdReader
 
     def extension
       extensions.first
+    end
+
+    def imports
+      @imports ||= map_children("xs:import")
     end
 
     #
