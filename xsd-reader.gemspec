@@ -1,5 +1,5 @@
 GEM_NAME="xsd-reader"
-PKG_VERSION='0.0.1'
+PKG_VERSION='0.1.0'
 
 Gem::Specification.new do |s|
   s.name = GEM_NAME
