@@ -2,6 +2,8 @@
 
 XsdReader provides easy and flexible access to XSD information
 
+[![Build Status](https://travis-ci.org/markkorput/xsd-reader.svg)](https://travis-ci.org/markkorput/xsd-reader)
+
 ## Installation
 
 
