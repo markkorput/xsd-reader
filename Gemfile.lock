@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    xsd-reader (0.0.1)
+    xsd-reader (0.1.0)
       nokogiri
       rest-client
 
