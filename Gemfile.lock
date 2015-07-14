@@ -2,8 +2,8 @@ PATH
   remote: .
   specs:
     xsd-reader (0.1.0)
-      nokogiri
-      rest-client
+      nokogiri (~> 1.6)
+      rest-client (~> 1.8)
 
 GEM
   remote: https://rubygems.org/
@@ -21,6 +21,7 @@ GEM
     netrc (0.10.3)
     nokogiri (1.6.6.2)
       mini_portile (~> 0.6.0)
+    rake (10.1.0)
     rest-client (1.8.0)
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 3.0)
@@ -47,7 +48,8 @@ PLATFORMS
 
 DEPENDENCIES
   byebug
-  rspec
+  rake (~> 10.1)
+  rspec (~> 3.3)
   xsd-reader!
 
 BUNDLED WITH
