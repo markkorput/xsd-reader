@@ -7,5 +7,8 @@ require 'xsd_reader/sequence'
 require 'xsd_reader/choice'
 require 'xsd_reader/complex_type'
 require 'xsd_reader/simple_content'
+require 'xsd_reader/complex_content'
 require 'xsd_reader/extension'
+require 'xsd_reader/import'
+require 'xsd_reader/simple_type'
 

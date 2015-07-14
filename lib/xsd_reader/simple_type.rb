@@ -1,5 +1,7 @@
 module XsdReader
-  class Choice
+
+  class SimpleType
     include Shared
-  end # class Choice
+  end # class SimpleType
+
 end # module XsdReader

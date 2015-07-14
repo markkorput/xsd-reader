@@ -1,9 +1,18 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
 describe XsdReader do
+  let(:logger){
+    logger = Logger.new(STDOUT)
+    logger.level = Logger::DEBUG
+    logger
+  }
 
   let(:reader){
-    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-ern-v36.xsd')))
+    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'ddex-ern-v36.xsd')), :logger => logger)
+  }
+
+  let(:v32){
+    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v32', 'ern-main.xsd')))
   }
 
   # do caching tests first, so they can show the initial -cacheless- situation 
@@ -19,7 +28,7 @@ describe XsdReader do
       # the next line causes new caches to be created
       expect(reader['NewReleaseMessage'].instance_variable_get('@all_elements')).to eq nil
       expect(reader.instance_variable_get('@schema').class).to eq XsdReader::Schema
-      expect(reader.instance_variable_get('@elements').length).to eq 2
+      expect(reader.schema.instance_variable_get('@direct_elements').length).to eq 2
       # the next line causes new caches to be created
       expect(reader['NewReleaseMessage']['NewReleaseMessage'].instance_variable_get('@all_elements')).to eq nil
       expect(reader['NewReleaseMessage'].instance_variable_get('@all_elements').first.name).to eq 'MessageHeader'
@@ -27,70 +36,160 @@ describe XsdReader do
     end
   end
 
-  it "gives all child element definitions for a certain node through the `elements` method" do
-    expect(reader.elements.map(&:name)).to eq ['NewReleaseMessage', 'CatalogListMessage']
-    expect(reader.elements[0].elements[0].name).to eq 'MessageHeader'
+  describe "#elements" do
+    it "gives all child element definitions" do
+      expect(reader.elements.map(&:name)).to eq ['NewReleaseMessage', 'CatalogListMessage']
+      expect(reader.elements[0].elements[0].name).to eq 'MessageHeader'
+    end
   end
 
-  it "gives a child element object through the square brackets ([]) operator (matching by name)" do
-    expect(reader['NewReleaseMessage'].name).to eq 'NewReleaseMessage'
-    # this supports linking:
-    expect(reader['NewReleaseMessage']['ReleaseList']['Release'].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
+  describe "#all_elements" do
+    it "includes elements from linked complex types fmor an imported schema" do
+      el = v32['NewReleaseMessage']['CollectionList']['Collection']['Title']
+      expect(el.all_elements.map(&:name)).to eq ['TitleText', 'SubTitle']
+    end
+
+    it "includes elements from extensions in linked complex types" do
+      el = v32['NewReleaseMessage']['ResourceList']['SoundRecording']['SoundRecordingDetailsByTerritory']
+      expect(el.elements.map(&:name)).to eq ["TerritoryCode", "ExcludedTerritoryCode", "Title", "DisplayArtist", "ResourceContributor", "IndirectResourceContributor", "RightsAgreementId", "LabelName", "RightsController", "RemasteredDate", "OriginalResourceReleaseDate", "PLine", "CourtesyLine", "SequenceNumber", "HostSoundCarrier", "MarketingComment", "Genre", "ParentalWarningType", "AvRating", "TechnicalSoundRecordingDetails", "FulfillmentDate", "Keywords", "Synopsis"]
+    end
   end
 
-  it "gives a specific element in the hierarchy when passing an array argument to the square brackets ([]) operator" do
-    # this supports linking:
-    expect(reader[['NewReleaseMessage', 'ResourceList', 'SoundRecording']].name).to eq 'SoundRecording'
-    expect(reader[['NewReleaseMessage', 'ResourceList', 'SoundRecording']].multiple_allowed?).to eq true
+  describe "[] operator" do
+    it "gives a child element object (matching by name)" do
+      expect(reader['NewReleaseMessage'].name).to eq 'NewReleaseMessage'
+    end
+
+    it "supports linking" do
+      # this supports linking:
+      expect(reader['NewReleaseMessage']['ReleaseList']['Release'].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
+    end
+
+    it "gives a specific element in the hierarchy when passing an array argument" do
+      expect(reader[['NewReleaseMessage', 'ResourceList', 'SoundRecording']].name).to eq 'SoundRecording'
+      expect(reader[['NewReleaseMessage', 'ResourceList', 'SoundRecording']].multiple_allowed?).to eq true
+    end
+
+    it "automatically turns symbol arguments into strings" do
+      expect(reader[:NewReleaseMessage].name).to eq 'NewReleaseMessage'
+      # this supports linking:
+      expect(reader[:NewReleaseMessage]['ReleaseList'][:Release].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
+      expect(reader[:NewReleaseMessage, 'ReleaseList', :Release].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
+    end
+
+    it "return nil and doesn't raise an exceptions when getting invalid input" do
+      expect{
+        expect(reader[:NewReleaseMessage, 'Nothing', '@Whatever', 'Foo']).to eq nil
+      }.to_not raise_error
+    end
   end
 
-  it "automatically turns symbol arguments in the square brackets operator ([]) into strings" do
-    expect(reader[:NewReleaseMessage].name).to eq 'NewReleaseMessage'
-    # this supports linking:
-    expect(reader[:NewReleaseMessage]['ReleaseList'][:Release].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
-    expect(reader[:NewReleaseMessage, 'ReleaseList', :Release].attributes.map(&:name)).to eq ["LanguageAndScriptCode", "IsMainRelease"]
+  describe "#child_elements?" do
+    it "returns wether an element has child element definitions or not" do
+      expect(reader['NewReleaseMessage'].child_elements?).to eq true
+      expect(reader['NewReleaseMessage']['MessageHeader']['MessageThreadId'].child_elements?).to eq false
+    end
+  end    
+
+  describe "#min_occurs" do
+    it "gives the minOccurs attribute as an integer" do
+      expect(reader['NewReleaseMessage']['ResourceList']['SoundRecording'].min_occurs).to eq 0
+    end
+
+    it "returns nil when an element has no minOccurs attribute specified" do
+      expect(reader['NewReleaseMessage']['ResourceList'].min_occurs).to eq nil
+    end
   end
 
-  it "should return nil and not raise an exceptions when the square brackets ([]) operator gets invalid input" do
-    expect{
-      expect(reader[:NewReleaseMessage, 'Nothing', '@Whatever', 'Foo']).to eq nil
-    }.to_not raise_error
+  describe "#max_occurs" do
+    it "returns the :unbounded symbol when there's no limit to the number of occurences of an element" do
+      expect(reader['NewReleaseMessage']['ResourceList']['SoundRecording'].max_occurs).to eq :unbounded
+    end
   end
 
-  it "provides a `child_elements?` convenience method" do
-    expect(reader['NewReleaseMessage'].child_elements?).to be true
-    expect(reader['NewReleaseMessage']['MessageHeader']['MessageThreadId'].child_elements?).to be false
+  describe "#multiple_allowed?" do
+    it "indicates if multiple instances of an element are allowed" do
+      expect(reader['NewReleaseMessage']['ResourceList'].multiple_allowed?).to be false
+      expect(reader['NewReleaseMessage']['ResourceList']['SoundRecording'].multiple_allowed?).to be true
+    end
   end
 
-  it "provides `min_occurs` and `max_occurs` reader methods" do
-    expect(reader['NewReleaseMessage']['ResourceList'].min_occurs).to eq nil
-    expect(reader['NewReleaseMessage']['ResourceList']['SoundRecording'].min_occurs).to eq 0
-    expect(reader['NewReleaseMessage']['ResourceList']['SoundRecording'].max_occurs).to eq :unbounded
+  describe "#required?" do
+    it "indicates if an element is required" do
+      expect(reader['NewReleaseMessage'].required?).to be true
+      expect(reader['NewReleaseMessage']['ResourceList'].required?).to be true
+      expect(reader['NewReleaseMessage']['CollectionList'].required?).to be false
+    end
+
+    it "indicates if an attribute is required" do
+      expect(reader['NewReleaseMessage']['@MessageSchemaVersionId'].required?).to eq true
+      expect(reader['NewReleaseMessage']['@LanguageAndScriptCode'].required?).to eq false
+    end
   end
 
-  it "provides a boolean `multiple_allowed?` method, indicating if multiple instances of this element are allowed" do
-    # byebug
-    expect(reader['NewReleaseMessage']['ResourceList'].multiple_allowed?).to be false
-    expect(reader['NewReleaseMessage']['ResourceList']['SoundRecording'].multiple_allowed?).to be true
+  describe "#optional?" do
+    it "indicates if an element is optonal (opposite of required)" do
+      expect(reader['NewReleaseMessage'].optional?).to be false
+      expect(reader['NewReleaseMessage']['ResourceList'].optional?).to be false
+      expect(reader['NewReleaseMessage']['CollectionList'].optional?).to be true
+    end
   end
 
-  it "provides a `required?` method, indicating if an element is required to be there" do
-    expect(reader['NewReleaseMessage'].required?).to be true
-    expect(reader['NewReleaseMessage']['ResourceList'].required?).to be true
-    expect(reader['NewReleaseMessage']['CollectionList'].required?).to be false
+  describe "imports"  do
+    it "finds imported types for elements" do
+      simple_type = reader['NewReleaseMessage']['DealList']['ReleaseDeal']['Deal']['DealTerms']['WebPolicy']['AccessLimitation'].linked_simple_type
+      expect(simple_type.class).to eq XsdReader::SimpleType
+      expect(simple_type.name).to eq 'AccessLimitation'
+      # byebug
+      expect(simple_type.schema).to be reader.imports[0].reader.schema
+    end
   end
 
-  it "provides an `optional?` convenience method, as an opposite of `required?`" do
-    expect(reader['NewReleaseMessage'].optional?).to be false
-    expect(reader['NewReleaseMessage']['ResourceList'].optional?).to be false
-    expect(reader['NewReleaseMessage']['CollectionList'].optional?).to be true
+  describe "#schema_for_namespace" do
+    let(:v32){
+      XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v32', 'ern-main.xsd')))
+    }
+
+    it "returns the schema object for a specified namespace" do
+      expect(v32.schema_for_namespace('http://ddex.net/xml/2010/ern-main/32').target_namespace).to eq 'http://ddex.net/xml/2010/ern-main/32'
+      expect(v32.schema_for_namespace('http://ddex.net/xml/2010/ern-main/32')).to be v32.schema
+      expect(v32.schema.schema_for_namespace('http://ddex.net/xml/2010/ern-main/32')).to be v32.schema
+      expect(v32['NewReleaseMessage'].schema_for_namespace('http://ddex.net/xml/2010/ern-main/32')).to be v32.schema
+    end
+
+    it "returns the schema object for a specified namespace code" do
+      expect(v32.schema_for_namespace('ernm').target_namespace).to eq 'http://ddex.net/xml/2010/ern-main/32'
+      expect(v32.schema_for_namespace('ernm')).to be v32.schema
+      expect(v32.schema.schema_for_namespace('ernm')).to be v32.schema
+      expect(v32['NewReleaseMessage']['ResourceList'].schema_for_namespace('ernm')).to be v32.schema
+    end
+
+    it "finds imported schemas" do
+      expect(v32.schema_for_namespace('http://ddex.net/xml/20100712/ddexC').target_namespace).to eq 'http://ddex.net/xml/20100712/ddexC'
+      expect(v32.schema_for_namespace('http://ddex.net/xml/20100712/ddexC')).to be v32.imports[1].reader.schema
+      expect(v32.schema.schema_for_namespace('ddex').target_namespace).to eq 'http://ddex.net/xml/20100712/ddex'
+      expect(v32.schema.schema_for_namespace('ddex')).to be v32.imports[0].reader.schema
+      expect(v32.schema_for_namespace('ddexC').target_namespace).to eq 'http://ddex.net/xml/20100712/ddexC'
+      expect(v32.schema_for_namespace('ddexC')).to be v32.imports[1].reader.schema
+    end
   end
 
-  # it "gives an array recursive parent names `ancestors` method" do
-  #   skip 'Not yet (properly) imlemented'
-  #   # byebug
-  #   expect(reader.ancestors).to eq []
-  #   expect(reader['NewReleaseMessage'].ancestors).to eq []
-  #   expect(reader['NewReleaseMessage']['DealList']['ReleaseDeal'].ancestors.map(&:name)).to eq ['NewReleasMessage', 'DealList']
-  # end     
+  describe "#linked_complex_type" do
+    it "finds complex types for elements within the same schema" do
+      el = reader['NewReleaseMessage']['MessageHeader']
+      ct = el.linked_complex_type
+      expect(ct.class).to eq XsdReader::ComplexType
+      expect(ct.name).to eq 'MessageHeader'
+      expect(ct.schema).to be el.schema
+    end
+
+    it "finds complex types for elements on imported schemas based on namespace prefix" do
+      el = v32['NewReleaseMessage']['CollectionList']['Collection']['Title']
+      ct = el.linked_complex_type
+      expect(ct.class).to eq XsdReader::ComplexType
+      expect(ct.name).to eq 'Title'
+      expect(ct.schema).to be el.schema.imports[1].reader.schema
+      expect(el.complex_type).to be ct
+    end
+  end
 end
