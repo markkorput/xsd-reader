@@ -12,7 +12,10 @@ module XsdReader
     end
 
     def logger
+      return @logger if @logger
       @logger ||= options[:logger] || Logger.new(STDOUT)
+      @logger.level = Logger::WARN
+      return @logger
     end
 
     def node
@@ -67,11 +70,11 @@ module XsdReader
     end
 
     def base_name
-      base ? base.type.split(':').last : nil
+      base ? base.split(':').last : nil
     end
 
     def base_namespace
-      base ? base.type.split(':').first : nil
+      base ? base.split(':').first : nil
     end
 
     #
@@ -86,6 +89,7 @@ module XsdReader
         'xs:complexType' => ComplexType,
         'xs:sequence' => Sequence,
         'xs:simpleContent' => SimpleContent,
+        'xs:complexContent' => ComplexContent,
         'xs:extension' => Extension,
         'xs:import' => Import,
         'xs:simpleType' => SimpleType
@@ -122,15 +126,11 @@ module XsdReader
       direct_elements
     end
 
-    def unordered_elements
-      direct_elements + (complex_type ? complex_type.all_elements : []) + sequences.map(&:all_elements).flatten + choices.map(&:all_elements).flatten
-    end
-
     def ordered_elements
       # loop over each interpretable child xml node, and if we can convert a child node
       # to an XsdReader object, let it give its compilation of all_elements
       nodes.map{|node| node_to_object(node)}.compact.map do |obj|
-        obj.is_a?(Element) ? obj : obj.all_elements
+        obj.is_a?(Element) ? obj : obj.ordered_elements
       end.flatten
     end
 
@@ -159,11 +159,12 @@ module XsdReader
     end
 
     def complex_type
-      complex_types.first
+      complex_types.first || linked_complex_type
     end
 
     def linked_complex_type
-      @linked_complex_type ||= object_by_name('xs:complexType', type) || object_by_name('xs:complexType', type_name) 
+      @linked_complex_type ||= (schema_for_namespace(type_namespace) || schema).complex_types.find{|ct| ct.name == (type_name || type)}
+      #@linked_complex_type ||= object_by_name('xs:complexType', type) || object_by_name('xs:complexType', type_name) 
     end
 
     def simple_contents
@@ -172,6 +173,14 @@ module XsdReader
 
     def simple_content
       simple_contents.first
+    end
+
+    def complex_contents
+      @complex_contents ||= map_children("xs:complexContent")
+    end
+
+    def complex_content
+      complex_contents.first
     end
 
     def extensions
@@ -188,6 +197,7 @@ module XsdReader
 
     def linked_simple_type
       @linked_simple_type ||= object_by_name('xs:simpleType', type) || object_by_name('xs:simpleType', type_name)
+      # @linked_simple_type ||= (type_namespace ? schema_for_namespace(type_namespace) : schema).simple_types.find{|st| st.name == (type_name || type)}
     end
 
     #
@@ -196,6 +206,7 @@ module XsdReader
 
     def parent
       if node && node.respond_to?(:parent) && node.parent
+
         return node_to_object(node.parent)
       end
 
@@ -223,16 +234,18 @@ module XsdReader
       return nil
     end
 
-    def elements_by_type(type_name)
-      els = schema.node.search("//xs:element[@type=\"#{type_name}\"]")
+    def schema_for_namespace(_namespace)
+      logger.debug "Shared#schema_for_namespace with _namespace: #{_namespace}"
+      return schema if schema.targets_namespace?(_namespace)
 
-      schema.node.search("//xs:element[@type=\"#{type_name}\"]")
-
-      while els.length == 0
-
+      if import = schema.import_by_namespace(_namespace)
+        logger.debug "Shared#schema_for_namespace found import schema"
+        return import.reader.schema
       end
-    end
 
+      logger.debug "Shared#schema_for_namespace no result"
+      return nil
+    end
   end
 
 end # module XsdReader

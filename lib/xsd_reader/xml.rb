@@ -11,6 +11,13 @@ module XsdReader
       raise "#{self.class.to_s}.new expects a hash parameter" if !@options.is_a?(Hash)
     end
 
+    def logger
+      return @logger if @logger
+      @logger ||= options[:logger] || Logger.new(STDOUT)
+      @logger.level = Logger::WARN
+      return @logger
+    end
+
     def xsd_from_uri
       # @xsd_from_uri ||= options[:xsd_uri].nil ? nil : open(options[:xsd_uri])
     end
@@ -36,7 +43,7 @@ module XsdReader
     end
 
     def schema
-      @schema ||= Schema.new(self.options.merge(:node => schema_node)) # , :logger => logger, :xsd_file => options[:xsd_file])
+      @schema ||= Schema.new(self.options.merge(:node => schema_node, :logger => logger))
     end
 
     # forwards most functions to schema
@@ -54,6 +61,10 @@ module XsdReader
 
     def simple_types
       schema.simple_types
+    end
+
+    def schema_for_namespace(_ns)
+      schema.schema_for_namespace(_ns)
     end
   end # class XML
 

@@ -1,9 +1,18 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
 describe XsdReader do
+  let(:logger){
+    logger = Logger.new(STDOUT)
+    logger.level = Logger::DEBUG
+    logger
+  }
 
   let(:reader){
-    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'ddex-ern-v36.xsd')))
+    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'ddex-ern-v36.xsd')), :logger => logger)
+  }
+
+  let(:v32){
+    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v32', 'ern-main.xsd')))
   }
 
   # do caching tests first, so they can show the initial -cacheless- situation 
@@ -31,6 +40,18 @@ describe XsdReader do
     it "gives all child element definitions" do
       expect(reader.elements.map(&:name)).to eq ['NewReleaseMessage', 'CatalogListMessage']
       expect(reader.elements[0].elements[0].name).to eq 'MessageHeader'
+    end
+  end
+
+  describe "#all_elements" do
+    it "includes elements from linked complex types fmor an imported schema" do
+      el = v32['NewReleaseMessage']['CollectionList']['Collection']['Title']
+      expect(el.all_elements.map(&:name)).to eq ['TitleText', 'SubTitle']
+    end
+
+    it "includes elements from extensions in linked complex types" do
+      el = v32['NewReleaseMessage']['ResourceList']['SoundRecording']['SoundRecordingDetailsByTerritory']
+      expect(el.elements.map(&:name)).to eq ["TerritoryCode", "ExcludedTerritoryCode", "Title", "DisplayArtist", "ResourceContributor", "IndirectResourceContributor", "RightsAgreementId", "LabelName", "RightsController", "RemasteredDate", "OriginalResourceReleaseDate", "PLine", "CourtesyLine", "SequenceNumber", "HostSoundCarrier", "MarketingComment", "Genre", "ParentalWarningType", "AvRating", "TechnicalSoundRecordingDetails", "FulfillmentDate", "Keywords", "Synopsis"]
     end
   end
 
@@ -121,6 +142,54 @@ describe XsdReader do
       expect(simple_type.name).to eq 'AccessLimitation'
       # byebug
       expect(simple_type.schema).to be reader.imports[0].reader.schema
+    end
+  end
+
+  describe "#schema_for_namespace" do
+    let(:v32){
+      XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v32', 'ern-main.xsd')))
+    }
+
+    it "returns the schema object for a specified namespace" do
+      expect(v32.schema_for_namespace('http://ddex.net/xml/2010/ern-main/32').target_namespace).to eq 'http://ddex.net/xml/2010/ern-main/32'
+      expect(v32.schema_for_namespace('http://ddex.net/xml/2010/ern-main/32')).to be v32.schema
+      expect(v32.schema.schema_for_namespace('http://ddex.net/xml/2010/ern-main/32')).to be v32.schema
+      expect(v32['NewReleaseMessage'].schema_for_namespace('http://ddex.net/xml/2010/ern-main/32')).to be v32.schema
+    end
+
+    it "returns the schema object for a specified namespace code" do
+      expect(v32.schema_for_namespace('ernm').target_namespace).to eq 'http://ddex.net/xml/2010/ern-main/32'
+      expect(v32.schema_for_namespace('ernm')).to be v32.schema
+      expect(v32.schema.schema_for_namespace('ernm')).to be v32.schema
+      expect(v32['NewReleaseMessage']['ResourceList'].schema_for_namespace('ernm')).to be v32.schema
+    end
+
+    it "finds imported schemas" do
+      expect(v32.schema_for_namespace('http://ddex.net/xml/20100712/ddexC').target_namespace).to eq 'http://ddex.net/xml/20100712/ddexC'
+      expect(v32.schema_for_namespace('http://ddex.net/xml/20100712/ddexC')).to be v32.imports[1].reader.schema
+      expect(v32.schema.schema_for_namespace('ddex').target_namespace).to eq 'http://ddex.net/xml/20100712/ddex'
+      expect(v32.schema.schema_for_namespace('ddex')).to be v32.imports[0].reader.schema
+      expect(v32.schema_for_namespace('ddexC').target_namespace).to eq 'http://ddex.net/xml/20100712/ddexC'
+      expect(v32.schema_for_namespace('ddexC')).to be v32.imports[1].reader.schema
+    end
+  end
+
+  describe "#linked_complex_type" do
+    it "finds complex types for elements within the same schema" do
+      el = reader['NewReleaseMessage']['MessageHeader']
+      ct = el.linked_complex_type
+      expect(ct.class).to eq XsdReader::ComplexType
+      expect(ct.name).to eq 'MessageHeader'
+      expect(ct.schema).to be el.schema
+    end
+
+    it "finds complex types for elements on imported schemas based on namespace prefix" do
+      el = v32['NewReleaseMessage']['CollectionList']['Collection']['Title']
+      ct = el.linked_complex_type
+      expect(ct.class).to eq XsdReader::ComplexType
+      expect(ct.name).to eq 'Title'
+      expect(ct.schema).to be el.schema.imports[1].reader.schema
+      expect(el.complex_type).to be ct
     end
   end
 end
