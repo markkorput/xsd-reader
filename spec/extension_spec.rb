@@ -26,4 +26,11 @@ describe XsdReader::Extension do
       expect(extension.ordered_elements.map(&:name)).to eq ["TerritoryCode", "ExcludedTerritoryCode", "Title", "DisplayArtist", "ResourceContributor", "IndirectResourceContributor", "RightsAgreementId", "LabelName", "RightsController", "RemasteredDate", "OriginalResourceReleaseDate", "PLine", "CourtesyLine", "SequenceNumber", "HostSoundCarrier", "MarketingComment", "Genre", "ParentalWarningType", "AvRating", "TechnicalSoundRecordingDetails", "FulfillmentDate", "Keywords", "Synopsis"]
     end
   end
+
+  describe "nested extensions" do
+    it 'should allow extensions to extend other extensions transparently' do
+      el = reader['NewReleaseMessage']['ResourceList']['Video']['VideoDetailsByTerritory']
+      expect(el.elements.map(&:name)).to eq ["TerritoryCode", "ExcludedTerritoryCode", "Title", "DisplayArtist", "ResourceContributor", "IndirectResourceContributor", "RightsAgreementId", "LabelName", "RightsController", "RemasteredDate", "OriginalResourceReleaseDate", "PLine", "CourtesyLine", "SequenceNumber", "HostSoundCarrier", "MarketingComment", "Genre", "ParentalWarningType", "AvRating", "FulfillmentDate", "Keywords", "Synopsis", "CLine", "TechnicalVideoDetails", "Character"]
+    end
+  end
 end # describe XsdReader::Extension
