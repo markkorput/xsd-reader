@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "xsd-reader"
-  s.version = '0.1.0'
+  s.version = '0.2.0'
   s.files = `git ls-files`.split($/)
   s.executables = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
 
   s.author = "Mark van de Korput"
   s.email = "dr.theman@gmail.com"
-  s.date = '2015-07-14'
+  s.date = '2015-08-27'
   s.description = %q{A library of Ruby classes for quick and convenient usage of xsd schemas}
   s.summary = %q{A library of Ruby classes for flexible access of xsd schemas}
   s.homepage = %q{https://github.com/markkorput/xsd-reader}
