@@ -49,11 +49,29 @@ module XsdReader
     # attribute properties
     #
     def name
-      node.attributes['name'].value
+      name_local || name_referenced
     end
 
+    def name_local
+      node.attributes['name'] ? node.attributes['name'].value : nil
+    end
+
+    def name_referenced
+      referenced_element ? referenced_element.name : nil
+    end
+
+    def ref
+      node.attributes['ref'] ? node.attributes['ref'].value : nil
+    end
+
+    def referenced_element
+      ref && schema ? schema.elements.find{|el| el.name == ref} : nil
+    end
+
+
     def type
-      node.attributes['type'] ? node.attributes['type'].value : nil
+      type = node.attributes['type'] ? node.attributes['type'].value : nil
+      type || (referenced_element ? referenced_element.type : nil)
     end
 
     def type_name
@@ -63,6 +81,7 @@ module XsdReader
     def type_namespace
       type ? type.split(':').first : nil
     end
+
 
     # base stuff belongs to extension type objects only, but let's be flexible
     def base
@@ -76,6 +95,7 @@ module XsdReader
     def base_namespace
       base ? base.split(':').first : nil
     end
+
 
     #
     # Node to class mapping
@@ -135,7 +155,9 @@ module XsdReader
     end
 
     def all_elements
-      @all_elements ||= ordered_elements + (linked_complex_type ? linked_complex_type.ordered_elements : [])
+      @all_elements ||= ordered_elements +
+        (linked_complex_type ? linked_complex_type.all_elements : []) + 
+        (referenced_element ? referenced_element.all_elements : [])
     end
 
     def child_elements?
@@ -143,7 +165,8 @@ module XsdReader
     end
 
     def attributes
-      @attributes ||= map_children('xs:attribute')
+      @attributes ||= map_children('xs:attribute') #+
+        #(referenced_element ? referenced_element.attributes : [])
     end
 
     def sequences
@@ -159,7 +182,7 @@ module XsdReader
     end
 
     def complex_type
-      complex_types.first || linked_complex_type
+      complex_types.first || linked_complex_type || (referenced_element ? referenced_element.complex_type : nil)
     end
 
     def linked_complex_type

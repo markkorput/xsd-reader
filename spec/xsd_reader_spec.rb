@@ -44,7 +44,7 @@ describe XsdReader do
   end
 
   describe "#all_elements" do
-    it "includes elements from linked complex types fmor an imported schema" do
+    it "includes elements from linked complex types from an imported schema" do
       el = v32['NewReleaseMessage']['CollectionList']['Collection']['Title']
       expect(el.all_elements.map(&:name)).to eq ['TitleText', 'SubTitle']
     end
@@ -191,5 +191,83 @@ describe XsdReader do
       expect(ct.schema).to be el.schema.imports[1].reader.schema
       expect(el.complex_type).to be ct
     end
+  end
+
+  describe "referenced elements" do
+    let(:reader){
+      XsdReader::XML.new(:xsd_file => File.expand_path('examples/referencing.xsd', File.dirname(__FILE__)))
+    }
+
+    let(:element){
+      reader['Album', 'Tracks', 'Track', 'Contributors', 'Contributor']
+    }
+
+    describe '#referenced_element' do
+      it 'gives the referenced element' do
+        expect(element.referenced_element.class).to eq XsdReader::Element
+        expect(element.referenced_element.name).to eq 'Contributor'
+        expect(element.referenced_element).to_not eq element
+      end
+    end
+
+    describe '#elements' do
+      it "gives alements of the referenced element" do
+        expect(element.elements.map(&:name)).to eq ['Name', 'Role', 'Instrument']
+      end
+    end
+
+    describe '#attributes' do
+      it "gives the attributes of the referenced element" do
+        expect(element.attributes.map(&:name)).to eq ['credited']
+      end
+    end
+
+    describe '#[]' do
+      it "lets the caller acces elements of the referenced element" do
+        expect(element['Role'].type).to eq 'xs:NCName'
+      end
+
+      it "lets the caller access attributes of the referened element" do
+        expect(element['@credited'].type).to eq 'xs:boolean'
+      end
+    end
+
+    describe '#name' do
+      it "gives the name of the referenced element" do
+        expect(element.name).to eq 'Contributor'
+      end
+    end
+
+    describe '#type' do
+      it "gives the type of the referenced element" do
+        expect(element.type).to eq nil
+        expect(reader['Album', 'Source'].type).to eq 'xs:string'
+      end
+    end
+
+    describe '#complex_type' do
+      it "gives the complex type object of the referenced element" do
+        expect(element.complex_type.sequences.first.elements.map(&:name)).to eq ['Name', 'Role', 'Instrument']
+      end
+    end
+
+    describe '#simple_contents' do
+      it "it includes the referenced element's simple content objects" do
+        skip 'not yet implemented'
+      end
+    end
+
+    describe '#complex_contents' do
+      it "it includes the referenced element's complex content objects" do
+        skip 'not yet implemented'
+      end
+    end
+
+    describe '#extensions' do
+      it "it includes the referenced element's extension objects" do
+        skip 'not yet implemented'
+      end
+    end
+    
   end
 end
