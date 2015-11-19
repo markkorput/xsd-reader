@@ -10,8 +10,38 @@ describe XsdReader::Element do
     reader.elements[0]
   }
 
-  it "gives the element's name" do
-    expect(element.name).to eq 'NewReleaseMessage'
+  let(:referencing_reader){
+    XsdReader::XML.new(:xsd_file => File.expand_path('examples/referencing.xsd', File.dirname(__FILE__)))
+  }
+
+  describe '#name' do
+    it "gives the element's name" do
+      expect(element.name).to eq 'NewReleaseMessage'
+    end
+
+    it "gives the element's name obtained through reference" do
+      expect(referencing_reader.elements[0].elements[0].name).to eq 'Source'
+    end
+  end
+
+  describe '#ref' do
+    it "gives an element's ref attribute value" do
+      expect(referencing_reader['Album']['Source'].ref).to eq 'Source'
+    end
+
+    it "returns nil when attribute available" do
+      expect(element.ref).to eq nil
+    end
+  end
+
+  describe '#type' do
+    it "gives the type of an element" do
+      expect(reader['NewReleaseMessage']['MessageHeader'].type).to eq 'ern:MessageHeader'
+    end
+
+    it "gives the type of an elements obtained through the referenced element" do
+      expect(referencing_reader['Album']['Source'].type).to eq 'xs:string'
+    end
   end
 
   it "gives a complex type reader" do

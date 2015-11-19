@@ -49,11 +49,22 @@ module XsdReader
     # attribute properties
     #
     def name
-      node.attributes['name'].value
+      name = node.attributes['name'] ? node.attributes['name'].value : nil
+      name || (referenced_element ? referenced_element.name : nil)
     end
 
+    def ref
+      node.attributes['ref'] ? node.attributes['ref'].value : nil
+    end
+
+    def referenced_element
+      ref && schema ? schema.elements.find{|el| el.name == ref} : nil
+    end
+
+
     def type
-      node.attributes['type'] ? node.attributes['type'].value : nil
+      type = node.attributes['type'] ? node.attributes['type'].value : nil
+      type || (referenced_element ? referenced_element.type : nil)
     end
 
     def type_name
@@ -63,6 +74,7 @@ module XsdReader
     def type_namespace
       type ? type.split(':').first : nil
     end
+
 
     # base stuff belongs to extension type objects only, but let's be flexible
     def base
@@ -76,6 +88,7 @@ module XsdReader
     def base_namespace
       base ? base.split(':').first : nil
     end
+
 
     #
     # Node to class mapping
@@ -166,6 +179,7 @@ module XsdReader
       @linked_complex_type ||= (schema_for_namespace(type_namespace) || schema).complex_types.find{|ct| ct.name == (type_name || type)}
       #@linked_complex_type ||= object_by_name('xs:complexType', type) || object_by_name('xs:complexType', type_name) 
     end
+
 
     def simple_contents
       @simple_contents ||= map_children("xs:simpleContent")
