@@ -14,6 +14,16 @@ describe XsdReader::Element do
     XsdReader::XML.new(:xsd_file => File.expand_path('examples/referencing.xsd', File.dirname(__FILE__)))
   }
 
+  describe '#[]' do
+    it "gives an element's child" do
+      expect(reader['NewReleaseMessage']).to eq reader.elements[0]
+    end
+
+    it "gives an element's child through reference element" do
+      expect(referencing_reader['Album', 'Tracks', 'Track', 'ISRC'].type).to eq 'xs:NCName'
+    end
+  end
+
   describe '#name' do
     it "gives the element's name" do
       expect(element.name).to eq 'NewReleaseMessage'
@@ -44,23 +54,109 @@ describe XsdReader::Element do
     end
   end
 
-  it "gives a complex type reader" do
-    expect(element.complex_type.class).to eq XsdReader::ComplexType
+  describe '#complex_type' do
+    it "gives a complex type reader" do
+      expect(element.complex_type.class).to eq XsdReader::ComplexType
+    end
   end
 
-  it "gives child elements defined within a complex type" do
-    # byebug
-    expect(element.elements.map(&:name)).to eq [
-      "MessageHeader",
-      "UpdateIndicator",
-      "IsBackfill",
-      "CatalogTransfer",
-      "WorkList",
-      "CueSheetList",
-      "ResourceList",
-      "CollectionList",
-      "ReleaseList",
-      "DealList"]
+  describe "#elements" do
+    it "gives child elements in the right order" do
+      expected = [
+        "CommercialModelType",
+        "Usage",
+        "AllDealsCancelled",
+        "TakeDown",
+        "TerritoryCode",
+        "ExcludedTerritoryCode",
+        "DistributionChannel",
+        "ExcludedDistributionChannel",
+        "PriceInformation",
+        "IsPromotional",
+        "PromotionalCode",
+        "ValidityPeriod",
+        "ConsumerRentalPeriod",
+        "PreOrderReleaseDate",
+        "ReleaseDisplayStartDate",
+        "TrackListingPreviewStartDate",
+        "CoverArtPreviewStartDate",
+        "ClipPreviewStartDate",
+        "PreOrderPreviewDate",
+        "IsExclusive",
+        "RelatedReleaseOfferSet",
+        "PhysicalReturns",
+        "NumberOfProductsPerCarton",
+        "RightsClaimPolicy",
+        "WebPolicy"]
+
+      # byebug
+
+      expect(reader['NewReleaseMessage']['DealList']['ReleaseDeal']['Deal']['DealTerms'].elements.map(&:name)).to eq expected
+    end
+
+    it "includes elements within a choice node" do
+      el = element.elements[3]
+      expect(el.name).to eq 'CatalogTransfer'
+      elements_without = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TransferringFrom", "TransferringTo"]
+      elements_with = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TerritoryCode", "ExcludedTerritoryCode", "TransferringFrom", "TransferringTo"]
+      expect(el.complex_type.sequences.map{|seq| seq.elements}.flatten.map(&:name)).to eq elements_without
+      expect(el.complex_type.all_elements.map(&:name)).to eq elements_with
+      expect(el.complex_type.sequences[0].choices.map{|ch| ch.elements}.flatten.map(&:name)).to eq elements_with - elements_without      
+    end
+
+    it "gives child elements defined within a complex type" do
+      # byebug
+      expect(element.elements.map(&:name)).to eq [
+        "MessageHeader",
+        "UpdateIndicator",
+        "IsBackfill",
+        "CatalogTransfer",
+        "WorkList",
+        "CueSheetList",
+        "ResourceList",
+        "CollectionList",
+        "ReleaseList",
+        "DealList"]
+    end
+
+    it "gives child elements defined in the referenced element" do
+      expect( referencing_reader['Album', 'Tracks'].elements.map(&:name) ).to eq ['Track']
+      expect(referencing_reader['Album', 'Tracks', 'Track'].elements.map(&:name)).to eq [
+        'ISRC',
+        'Artist',
+        'Title',
+        'DiscNumber',
+        'TrackNumber',
+        'Duration',
+        'Label',
+        'Company',
+        'CompanyCountry',
+        'RecordedCountry',
+        'RecordedYear',
+        'ReleaseDate',
+        'Contributors']
+    end
+  end
+
+  describe '#attributes' do
+    it "gives attributes defined in a complexType" do
+      expected = [
+        "MessageSchemaVersionId",
+        "BusinessProfileVersionId",
+        "ReleaseProfileVersionId",
+        "LanguageAndScriptCode"]
+      expect(element.attributes.map(&:name)).to eq expected
+      expect(element.complex_type.attributes.map(&:name)).to eq expected
+    end
+
+    it "gives attributes defined in a simpleContent extension" do
+      expect(element['ResourceList']['SoundRecording']['SoundRecordingDetailsByTerritory']['DisplayArtist']['ArtistRole'].attributes.map(&:name)).to eq ["Namespace", "UserDefinedValue"]
+    end
+
+    it "gives attributes defined in the referenced element" do
+      expect(referencing_reader['Album', 'Tracks', 'Track'].attributes).to eq []
+      expect(referencing_reader['Album', 'Tracks', 'Track', 'Contributors', 'Contributor'].attributes.map(&:name)).to eq ['credited']
+    end
   end
 
   describe "External type definition" do
@@ -102,52 +198,6 @@ describe XsdReader::Element do
     end
   end
 
-  describe "#elements" do
-
-    it "includes elements within a choice node" do
-      el = element.elements[3]
-      expect(el.name).to eq 'CatalogTransfer'
-      elements_without = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TransferringFrom", "TransferringTo"]
-      elements_with = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TerritoryCode", "ExcludedTerritoryCode", "TransferringFrom", "TransferringTo"]
-      expect(el.complex_type.sequences.map{|seq| seq.elements}.flatten.map(&:name)).to eq elements_without
-      expect(el.complex_type.all_elements.map(&:name)).to eq elements_with
-      expect(el.complex_type.sequences[0].choices.map{|ch| ch.elements}.flatten.map(&:name)).to eq elements_with - elements_without      
-    end
-
-    it "gives child elements in the right order" do
-      expected = [
-        "CommercialModelType",
-        "Usage",
-        "AllDealsCancelled",
-        "TakeDown",
-        "TerritoryCode",
-        "ExcludedTerritoryCode",
-        "DistributionChannel",
-        "ExcludedDistributionChannel",
-        "PriceInformation",
-        "IsPromotional",
-        "PromotionalCode",
-        "ValidityPeriod",
-        "ConsumerRentalPeriod",
-        "PreOrderReleaseDate",
-        "ReleaseDisplayStartDate",
-        "TrackListingPreviewStartDate",
-        "CoverArtPreviewStartDate",
-        "ClipPreviewStartDate",
-        "PreOrderPreviewDate",
-        "IsExclusive",
-        "RelatedReleaseOfferSet",
-        "PhysicalReturns",
-        "NumberOfProductsPerCarton",
-        "RightsClaimPolicy",
-        "WebPolicy"]
-
-      # byebug
-
-      expect(reader['NewReleaseMessage']['DealList']['ReleaseDeal']['Deal']['DealTerms'].elements.map(&:name)).to eq expected
-    end
-  end
-
   # # this is pretty slow...
   # describe "#family_tree" do
   #   before :each do
@@ -182,21 +232,4 @@ describe XsdReader::Element do
   #     expect(element.family_tree['DealList']['ReleaseDeal']['Deal']['DealTerms']['RightsClaimPolicy']['Condition']['Unit']).to eq 'type:UnitOfConditionValue'
   #   end
   # end
-
-  describe '#attributes' do
-    it "gives attributes defined in a complexType" do
-      expected = [
-        "MessageSchemaVersionId",
-        "BusinessProfileVersionId",
-        "ReleaseProfileVersionId",
-        "LanguageAndScriptCode"]
-      expect(element.attributes.map(&:name)).to eq expected
-      expect(element.complex_type.attributes.map(&:name)).to eq expected
-    end
-
-    it "gives attributes defined in a simpleContent extension" do
-      expect(element['ResourceList']['SoundRecording']['SoundRecordingDetailsByTerritory']['DisplayArtist']['ArtistRole'].attributes.map(&:name)).to eq ["Namespace", "UserDefinedValue"]
-    end
-  end
-
 end

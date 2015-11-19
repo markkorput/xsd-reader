@@ -49,8 +49,15 @@ module XsdReader
     # attribute properties
     #
     def name
-      name = node.attributes['name'] ? node.attributes['name'].value : nil
-      name || (referenced_element ? referenced_element.name : nil)
+      name_local || name_referenced
+    end
+
+    def name_local
+      node.attributes['name'] ? node.attributes['name'].value : nil
+    end
+
+    def name_referenced
+      referenced_element ? referenced_element.name : nil
     end
 
     def ref
@@ -148,7 +155,9 @@ module XsdReader
     end
 
     def all_elements
-      @all_elements ||= ordered_elements + (linked_complex_type ? linked_complex_type.ordered_elements : [])
+      @all_elements ||= ordered_elements +
+        (linked_complex_type ? linked_complex_type.all_elements : []) + 
+        (referenced_element ? referenced_element.all_elements : [])
     end
 
     def child_elements?
@@ -156,7 +165,8 @@ module XsdReader
     end
 
     def attributes
-      @attributes ||= map_children('xs:attribute')
+      @attributes ||= map_children('xs:attribute') #+
+        #(referenced_element ? referenced_element.attributes : [])
     end
 
     def sequences
@@ -172,14 +182,13 @@ module XsdReader
     end
 
     def complex_type
-      complex_types.first || linked_complex_type
+      complex_types.first || linked_complex_type || (referenced_element ? referenced_element.complex_type : nil)
     end
 
     def linked_complex_type
       @linked_complex_type ||= (schema_for_namespace(type_namespace) || schema).complex_types.find{|ct| ct.name == (type_name || type)}
       #@linked_complex_type ||= object_by_name('xs:complexType', type) || object_by_name('xs:complexType', type_name) 
     end
-
 
     def simple_contents
       @simple_contents ||= map_children("xs:simpleContent")
