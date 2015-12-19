@@ -22,6 +22,10 @@ module XsdReader
       options[:node]
     end
 
+    def schema_namespace_prefix
+      @schema_namespace_prefix ||= [(self.node.namespaces||{}).detect {|ns| ns[1]=~/XMLSchema/}.first.split(':')[1],nil].uniq.join(':')
+    end
+
     def nodes
       node.search("./*")
     end
@@ -102,17 +106,17 @@ module XsdReader
     #
     def class_for(n)
       class_mapping = {
-        'xs:schema' => Schema,
-        'xs:element' => Element,
-        'xs:attribute' => Attribute,
-        'xs:choice' => Choice,
-        'xs:complexType' => ComplexType,
-        'xs:sequence' => Sequence,
-        'xs:simpleContent' => SimpleContent,
-        'xs:complexContent' => ComplexContent,
-        'xs:extension' => Extension,
-        'xs:import' => Import,
-        'xs:simpleType' => SimpleType
+        "#{schema_namespace_prefix}schema" => Schema,
+        "#{schema_namespace_prefix}element" => Element,
+        "#{schema_namespace_prefix}attribute" => Attribute,
+        "#{schema_namespace_prefix}choice" => Choice,
+        "#{schema_namespace_prefix}complexType" => ComplexType,
+        "#{schema_namespace_prefix}sequence" => Sequence,
+        "#{schema_namespace_prefix}simpleContent" => SimpleContent,
+        "#{schema_namespace_prefix}complexContent" => ComplexContent,
+        "#{schema_namespace_prefix}extension" => Extension,
+        "#{schema_namespace_prefix}import" => Import,
+        "#{schema_namespace_prefix}simpleType" => SimpleType
       }
 
       return class_mapping[n.is_a?(Nokogiri::XML::Node) ? n.name : n]
@@ -129,8 +133,13 @@ module XsdReader
     # Child objects
     #
 
+    def prepend_namespace name
+      name =~ /^#{schema_namespace_prefix}/ ? name : "#{schema_namespace_prefix}#{name}"
+    end
+
     def mappable_children(xml_name)
-      node.search("./#{xml_name}").to_a
+#3      p prepend_namespace(xml_name )
+      node.search("./#{prepend_namespace xml_name}").to_a
     end
 
     def map_children(xml_name)
@@ -139,7 +148,7 @@ module XsdReader
     end
 
     def direct_elements
-      @direct_elements ||= map_children("xs:element")
+      @direct_elements ||= map_children("element")
     end
 
     def elements
@@ -165,20 +174,20 @@ module XsdReader
     end
 
     def attributes
-      @attributes ||= map_children('xs:attribute') #+
+      @attributes ||= map_children("attribute") #+
         #(referenced_element ? referenced_element.attributes : [])
     end
 
     def sequences
-      @sequences ||= map_children("xs:sequence",)
+      @sequences ||= map_children("sequence")
     end
 
     def choices
-      @choices ||= map_children("xs:choice")
+      @choices ||= map_children("choice")
     end
 
     def complex_types
-      @complex_types ||= map_children("xs:complexType")
+      @complex_types ||= map_children("complexType")
     end
 
     def complex_type
@@ -187,11 +196,11 @@ module XsdReader
 
     def linked_complex_type
       @linked_complex_type ||= (schema_for_namespace(type_namespace) || schema).complex_types.find{|ct| ct.name == (type_name || type)}
-      #@linked_complex_type ||= object_by_name('xs:complexType', type) || object_by_name('xs:complexType', type_name) 
+      #@linked_complex_type ||= object_by_name('#{schema_namespace_prefix}complexType', type) || object_by_name('#{schema_namespace_prefix}complexType', type_name)
     end
 
     def simple_contents
-      @simple_contents ||= map_children("xs:simpleContent")
+      @simple_contents ||= map_children("simpleContent")
     end
 
     def simple_content
@@ -199,7 +208,7 @@ module XsdReader
     end
 
     def complex_contents
-      @complex_contents ||= map_children("xs:complexContent")
+      @complex_contents ||= map_children("complexContent")
     end
 
     def complex_content
@@ -207,7 +216,7 @@ module XsdReader
     end
 
     def extensions
-      @extensions ||= map_children("xs:extension")
+      @extensions ||= map_children("extension")
     end
 
     def extension
@@ -215,11 +224,11 @@ module XsdReader
     end
 
     def simple_types
-      @simple_types ||= map_children("xs:simpleType")
+      @simple_types ||= map_children("simpleType")
     end
 
     def linked_simple_type
-      @linked_simple_type ||= object_by_name('xs:simpleType', type) || object_by_name('xs:simpleType', type_name)
+      @linked_simple_type ||= object_by_name("#{schema_namespace_prefix}simpleType", type) || object_by_name("#{schema_namespace_prefix}simpleType", type_name)
       # @linked_simple_type ||= (type_namespace ? schema_for_namespace(type_namespace) : schema).simple_types.find{|st| st.name == (type_name || type)}
     end
 
