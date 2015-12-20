@@ -19,12 +19,12 @@ module XsdReader
     end
 
     def imports
-      @imports ||= map_children("xs:import")
+      @imports ||= map_children("import")
     end
 
     def mappable_children(xml_name)
       result = super
-      result += import_mappable_children(xml_name) if xml_name != 'xs:import'
+      result += import_mappable_children(xml_name) if xml_name != 'import'
       return result.to_a
     end
 
