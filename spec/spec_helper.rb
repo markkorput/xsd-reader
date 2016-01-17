@@ -6,10 +6,16 @@
 require 'rspec'
 require 'logger'
 
+def spec_logger
+  @spec_logger_cache ||= Logger.new(STDOUT).tap do |logr|
+    logr.level = Logger::WARN
+  end
+end
+
 begin
   require 'byebug'
 rescue LoadError => e
-  Logger.new(STDOUT).warn("Could not load byebug, continuing without it")
+  spec_logger.warn("Could not load byebug, continuing without it")
 end
 
 CURRENT_DIR=File.dirname(__FILE__)

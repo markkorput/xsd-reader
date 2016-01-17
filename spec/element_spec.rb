@@ -101,7 +101,7 @@ describe XsdReader::Element do
       elements_with = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TerritoryCode", "ExcludedTerritoryCode", "TransferringFrom", "TransferringTo"]
       expect(el.complex_type.sequences.map{|seq| seq.elements}.flatten.map(&:name)).to eq elements_without
       expect(el.complex_type.all_elements.map(&:name)).to eq elements_with
-      expect(el.complex_type.sequences[0].choices.map{|ch| ch.elements}.flatten.map(&:name)).to eq elements_with - elements_without      
+      expect(el.complex_type.sequences[0].choices.map{|ch| ch.elements}.flatten.map(&:name)).to eq elements_with - elements_without
     end
 
     it "gives child elements defined within a complex type" do
@@ -197,6 +197,7 @@ describe XsdReader::Element do
       expect(header.complex_type.all_elements.map(&:name)).to eq expected
     end
   end
+
 
   # # this is pretty slow...
   # describe "#family_tree" do

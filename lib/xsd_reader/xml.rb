@@ -1,21 +1,19 @@
 require 'nokogiri'
 # require 'open-uri'
+require 'xsd_reader/shared' # for default_logger
 
 module XsdReader
 
   class XML
     attr_reader :options
 
-    def initialize(_opts = {})
-      @options = _opts || {}
-      raise "#{self.class.to_s}.new expects a hash parameter" if !@options.is_a?(Hash)
+    def initialize(opts = {})
+      @options = opts || {}
+      raise "#{self.class}.new expects a hash parameter" if !@options.is_a?(Hash)
     end
 
     def logger
-      return @logger if @logger
-      @logger ||= options[:logger] || Logger.new(STDOUT)
-      @logger.level = Logger::WARN
-      return @logger
+      options[:logger] || XsdReader::Shared.default_logger
     end
 
     def xsd_from_uri

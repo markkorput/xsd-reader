@@ -1,21 +1,19 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
 describe XsdReader do
-  let(:logger){
-    logger = Logger.new(STDOUT)
-    logger.level = Logger::DEBUG
-    logger
-  }
-
   let(:reader){
-    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'ddex-ern-v36.xsd')), :logger => logger)
+    XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v36', 'ddex-ern-v36.xsd')), :logger => spec_logger)
   }
 
   let(:v32){
     XsdReader::XML.new(:xsd_file => File.expand_path(File.join(File.dirname(__FILE__), 'examples', 'ddex-v32', 'ern-main.xsd')))
   }
 
-  # do caching tests first, so they can show the initial -cacheless- situation 
+  let(:ref_reader){
+    XsdReader::XML.new(:xsd_file => File.expand_path('examples/referencing.xsd', File.dirname(__FILE__)))
+  }
+
+  # do caching tests first, so they can show the initial -cacheless- situation
   describe 'caching' do
     it 'start with caches empty' do
       cache_names = [:direct_elements, :attributes, :all_elements, :sequences, :choices, :complex_types, :linked_complex_type, :simple_contents, :extensions]
@@ -89,7 +87,7 @@ describe XsdReader do
       expect(reader['NewReleaseMessage'].child_elements?).to eq true
       expect(reader['NewReleaseMessage']['MessageHeader']['MessageThreadId'].child_elements?).to eq false
     end
-  end    
+  end
 
   describe "#min_occurs" do
     it "gives the minOccurs attribute as an integer" do
@@ -102,8 +100,16 @@ describe XsdReader do
   end
 
   describe "#max_occurs" do
-    it "returns the :unbounded symbol when there's no limit to the number of occurences of an element" do
+    it "returns the :unbounded symbol when there's no limit to the number of occurences of the element" do
       expect(reader['NewReleaseMessage']['ResourceList']['SoundRecording'].max_occurs).to eq :unbounded
+    end
+
+    it "returns an integer value when there IS a limit to the number of occurences of the element" do
+      expect(ref_reader['Album']['Foo']['Bar'].max_occurs).to eq 3
+    end
+
+    it "returns nil when nothing is specfied for the element" do
+      expect(ref_reader['Album']['Tracks']['Track'].max_occurs).to eq nil
     end
   end
 
@@ -195,7 +201,7 @@ describe XsdReader do
 
   describe "referenced elements" do
     let(:reader){
-      XsdReader::XML.new(:xsd_file => File.expand_path('examples/referencing.xsd', File.dirname(__FILE__)))
+      ref_reader
     }
 
     let(:element){
@@ -268,6 +274,6 @@ describe XsdReader do
         skip 'not yet implemented'
       end
     end
-    
+
   end
 end

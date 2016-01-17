@@ -6,16 +6,19 @@ module XsdReader
 
     attr_reader :options
 
-    def initialize(_opts = {})
-      @options = _opts || {}
-      raise "#{self.class.to_s}.new expects a hash parameter" if !@options.is_a?(Hash)
+    def initialize(opts = {})
+      @options = opts || {}
+      raise "#{self.class}.new expects a hash parameter" if !@options.is_a?(Hash)
+    end
+
+    def self.default_logger
+      @default_logger ||= Logger.new(STDOUT).tap do |logr|
+        logr.level = Logger::WARN
+      end
     end
 
     def logger
-      return @logger if @logger
-      @logger ||= options[:logger] || Logger.new(STDOUT)
-      @logger.level = Logger::WARN
-      return @logger
+      options[:logger] || default_logger
     end
 
     def node
@@ -38,7 +41,7 @@ module XsdReader
 
       names.each do |curname|
         next if result.nil?
-        if curname.to_s =~ /^\@/ 
+        if curname.to_s =~ /^\@/
           attr_name = curname.to_s.gsub(/^\@/, '')
           result = result.attributes.find{|attr| attr.name == attr_name}
         else
@@ -125,7 +128,7 @@ module XsdReader
     def node_to_object(node)
       fullname = [node.namespace ? node.namespace.prefix : nil, node.name].reject{|str| str.nil? || str == ''}.join(':')
       klass = class_for(fullname)
-      # logger.debug "node_to_object, klass: #{klass.to_s}, fullname: #{fullname}"
+      # logger.debug "node_to_object, klass: #{klass}, fullname: #{fullname}"
       klass.nil? ? nil : klass.new(options.merge(:node => node, :schema => schema))
     end
 
@@ -143,7 +146,7 @@ module XsdReader
     end
 
     def map_children(xml_name)
-      # puts "Map Children with #{xml_name} for #{self.class.to_s}"
+      # puts "Map Children with #{xml_name} for #{self.class}"
       mappable_children(xml_name).map{|current_node| node_to_object(current_node)}
     end
 
@@ -165,7 +168,7 @@ module XsdReader
 
     def all_elements
       @all_elements ||= ordered_elements +
-        (linked_complex_type ? linked_complex_type.all_elements : []) + 
+        (linked_complex_type ? linked_complex_type.all_elements : []) +
         (referenced_element ? referenced_element.all_elements : [])
     end
 
@@ -258,19 +261,18 @@ module XsdReader
 
       # try to find in any of the importers
       self.schema.imports.each do |import|
-        if obj = import.reader.schema.object_by_name(xml_name, name)
-          return obj
-        end
+        obj = import.reader.schema.object_by_name(xml_name, name)
+        return obj if obj
       end
 
       return nil
     end
 
-    def schema_for_namespace(_namespace)
-      logger.debug "Shared#schema_for_namespace with _namespace: #{_namespace}"
-      return schema if schema.targets_namespace?(_namespace)
+    def schema_for_namespace(ns)
+      logger.debug "Shared#schema_for_namespace with namespace: #{ns}"
+      return schema if schema.targets_namespace?(ns)
 
-      if import = schema.import_by_namespace(_namespace)
+      if import = schema.import_by_namespace(ns)
         logger.debug "Shared#schema_for_namespace found import schema"
         return import.reader.schema
       end

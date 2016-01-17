@@ -22,9 +22,8 @@ module XsdReader
     end
 
     def max_occurs
-      if val = node.attributes['maxOccurs'] ? node.attributes['maxOccurs'].value : nil
-        val == 'unbounded' ? :unbounded : val.to_i
-      end
+      val = node.attributes['maxOccurs'] ? node.attributes['maxOccurs'].value : nil
+      val == 'unbounded' ? :unbounded : val.nil? ? nil : val.to_i
     end
 
     def multiple_allowed?
@@ -41,7 +40,7 @@ module XsdReader
 
     def family_tree(stack = [])
       logger.warn('Usage of the family tree function is not recommended as it can take very long to execute and is very memory intensive')
-      return @_cached_family_tree if @_cached_family_tree 
+      return @_cached_family_tree if @_cached_family_tree
 
       if stack.include?(name) # avoid endless recursive loop
         # logger.debug "Element#family_tree aborting endless recursive loop at element with name: #{name} and element stack: #{stack.inspect}"

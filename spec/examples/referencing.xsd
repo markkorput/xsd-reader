@@ -5,6 +5,13 @@
             <xs:sequence>
                 <xs:element ref='Source'/>
                 <xs:element ref='Tracks'/>
+                <xs:element name='Foo'>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element maxOccurs='3' name='Bar' type='xs:string' maxOccurs='3' />
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
             </xs:sequence>
         </xs:complexType>
     </xs:element>
