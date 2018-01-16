@@ -154,7 +154,7 @@ module XsdReader
       @direct_elements ||= map_children("element")
     end
 
-    def elements
+    def elements(opts = {})
       direct_elements
     end
 
