@@ -89,7 +89,6 @@ module XsdReader
       type ? type.split(':').first : nil
     end
 
-
     # base stuff belongs to extension type objects only, but let's be flexible
     def base
       node.attributes['base'] ? node.attributes['base'].value : nil
@@ -132,6 +131,10 @@ module XsdReader
       klass.nil? ? nil : klass.new(options.merge(:node => node, :schema => schema))
     end
 
+    def choice?
+      self.is_a?(Choice)
+    end
+
     #
     # Child objects
     #
@@ -150,19 +153,42 @@ module XsdReader
       mappable_children(xml_name).map{|current_node| node_to_object(current_node)}
     end
 
+    def combined_direct_elements(*args)
+      types = args.flatten
+      types.inject([]) do |elements, type|
+        elements << map_children(type)
+      end.flatten
+    end
+
     def direct_elements
-      @direct_elements ||= map_children("element")
+      @direct_elements ||= combined_direct_elements("element")
+    end
+
+    def direct_elements_and_choices
+      @direct_elements_and_choices ||= combined_direct_elements("element", "choice")
     end
 
     def elements(opts = {})
       direct_elements
     end
 
+    def elements_and_choices
+      direct_elements_and_choices
+    end
+
     def ordered_elements
+      order_elements([Element])
+    end
+
+    def ordered_elements_and_choices
+      order_elements([Element, Choice])
+    end
+
+    def order_elements(types_to_include)
       # loop over each interpretable child xml node, and if we can convert a child node
       # to an XsdReader object, let it give its compilation of all_elements
       nodes.map{|node| node_to_object(node)}.compact.map do |obj|
-        obj.is_a?(Element) ? obj : obj.ordered_elements
+        types_to_include.include?(obj.class) ? obj : obj.order_elements(types_to_include)
       end.flatten
     end
 
@@ -172,8 +198,18 @@ module XsdReader
         (referenced_element ? referenced_element.all_elements : [])
     end
 
+    def all_elements_and_choices
+      @all_elements_and_choices ||= ordered_elements_and_choices +
+        (linked_complex_type ? linked_complex_type.all_elements_and_choices : []) +
+        (referenced_element ? referenced_element.all_elements_and_choices : [])
+    end
+
     def child_elements?
       elements.length > 0
+    end
+
+    def child_elements_or_choices?
+      elements_and_choices.length > 0
     end
 
     def attributes

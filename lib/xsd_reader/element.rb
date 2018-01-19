@@ -9,6 +9,11 @@ module XsdReader
       all_elements
     end
 
+    def elements_and_choices(opts = {})
+      return super if opts[:direct] == true
+      all_elements_and_choices
+    end
+
     def attributes
       @_element_attributes ||= super + (complex_type ? complex_type.attributes : [])
     end

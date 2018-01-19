@@ -138,6 +138,82 @@ describe XsdReader::Element do
     end
   end
 
+  describe '#elements_and_choices' do
+    it "gives child elements in the right order" do
+      expected = [
+        "CommercialModelType",
+        "PriceInformation",
+        "ValidityPeriod",
+        "ConsumerRentalPeriod",
+        "PreOrderReleaseDate",
+        "IsExclusive",
+        "RelatedReleaseOfferSet",
+        "PhysicalReturns",
+        "NumberOfProductsPerCarton",
+        "RightsClaimPolicy",
+        "WebPolicy"]
+
+      # byebug
+
+      expect(reader['NewReleaseMessage']['DealList']['ReleaseDeal']['Deal']['DealTerms'].elements_and_choices.map(&:name).compact).to eq expected
+    end
+
+    it 'finds choice elements as children' do
+      element = reader['NewReleaseMessage']['DealList']['ReleaseDeal']['Deal']['DealTerms']
+      choice_children = element.elements_and_choices.select{ |child| child.choice? }
+      expect(choice_children.count).to eq 5
+    end
+
+    it "Does not include elements within a choice node" do
+      el = element.elements[3]
+      expect(el.name).to eq 'CatalogTransfer'
+
+      expected_elements_without = ["CatalogTransferCompleted", "EffectiveTransferDate", "CatalogReleaseReferenceList", "TransferringFrom", "TransferringTo"]
+      expected_choice_groups = [["TerritoryCode"], ["ExcludedTerritoryCode"]]
+      elements_and_choices = el.elements_and_choices
+
+      expect(elements_and_choices.map(&:name).compact).to eq expected_elements_without
+      choice_element = elements_and_choices.find{ |element| element.choice? }
+
+      choice_groups = choice_element.elements_and_choices.map{ |choice_group| choice_group.map(&:name) }
+
+      expect(choice_groups).to eq expected_choice_groups
+    end
+
+    it "gives child elements defined within a complex type" do
+      # byebug
+      expect(element.elements_and_choices.map(&:name)).to eq [
+        "MessageHeader",
+        "UpdateIndicator",
+        "IsBackfill",
+        "CatalogTransfer",
+        "WorkList",
+        "CueSheetList",
+        "ResourceList",
+        "CollectionList",
+        "ReleaseList",
+        "DealList"]
+    end
+
+    it "gives child elements defined in the referenced element" do
+      expect( referencing_reader['Album', 'Tracks'].elements_and_choices.map(&:name) ).to eq ['Track']
+      expect(referencing_reader['Album', 'Tracks', 'Track'].elements_and_choices.map(&:name)).to eq [
+        'ISRC',
+        'Artist',
+        'Title',
+        'DiscNumber',
+        'TrackNumber',
+        'Duration',
+        'Label',
+        'Company',
+        'CompanyCountry',
+        'RecordedCountry',
+        'RecordedYear',
+        'ReleaseDate',
+        'Contributors']
+    end
+  end
+
   describe '#attributes' do
     it "gives attributes defined in a complexType" do
       expected = [
