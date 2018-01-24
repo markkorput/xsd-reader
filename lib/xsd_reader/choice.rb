@@ -9,5 +9,9 @@ module XsdReader
         obj.is_a?(Element) ? [obj] : obj.elements_and_choices
       end
     end
+
+    def multiple_allowed?
+      false
+    end
   end # class Choice
 end # module XsdReader
