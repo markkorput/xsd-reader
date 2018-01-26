@@ -1,4 +1,4 @@
-source 'https://rubygems.org'
+source "http://gems.fuga.com:9292"
 
 gemspec
 

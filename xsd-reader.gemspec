@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name = "xsd-reader"
+  s.name = "xsd-reader-fuga"
   s.version = '0.4.1'
   s.files = `git ls-files`.split($/)
   s.executables = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
