@@ -60,7 +60,9 @@ module XsdReader
     end
 
     def name_local
-      node.attributes['name'] ? node.attributes['name'].value : nil
+      @name_local ||= begin
+        node.attributes['name'] ? node.attributes['name'].value : nil
+      end
     end
 
     def name_referenced
@@ -68,30 +70,32 @@ module XsdReader
     end
 
     def ref
-      node.attributes['ref'] ? node.attributes['ref'].value : nil
+      @ref ||= node.attributes['ref'] ? node.attributes['ref'].value : nil
     end
 
     def referenced_element
-      ref && schema ? schema.elements.find{|el| el.name == ref} : nil
+      @referenced_element ||= ref && schema ? schema.elements.find{|el| el.name == ref} : nil
     end
 
 
     def type
-      type = node.attributes['type'] ? node.attributes['type'].value : nil
-      type || (referenced_element ? referenced_element.type : nil)
+      @type ||= begin
+        type = node.attributes['type'] ? node.attributes['type'].value : nil
+        type || (referenced_element ? referenced_element.type : nil)
+      end
     end
 
     def type_name
-      type ? type.split(':').last : nil
+      @type_name ||= type ? type.split(':').last : nil
     end
 
     def type_namespace
-      type ? type.split(':').first : nil
+      @type_namespace ||= type ? type.split(':').first : nil
     end
 
     # base stuff belongs to extension type objects only, but let's be flexible
     def base
-      node.attributes['base'] ? node.attributes['base'].value : nil
+      @base ||= node.attributes['base'] ? node.attributes['base'].value : nil
     end
 
     def base_name
@@ -268,7 +272,6 @@ module XsdReader
 
     def linked_simple_type
       @linked_simple_type ||= object_by_name("#{schema_namespace_prefix}simpleType", type) || object_by_name("#{schema_namespace_prefix}simpleType", type_name)
-      # @linked_simple_type ||= (type_namespace ? schema_for_namespace(type_namespace) : schema).simple_types.find{|st| st.name == (type_name || type)}
     end
 
     #
