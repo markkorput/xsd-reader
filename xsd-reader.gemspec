@@ -1,11 +1,11 @@
 Gem::Specification.new do |s|
   s.name = "xsd-reader-fuga"
-  s.version = '0.4.1'
+  s.version = '0.4.2'
   s.files = `git ls-files`.split($/)
   s.executables = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
-  s.add_dependency 'nokogiri', '~> 1.6'
-  s.add_dependency 'rest-client', '~> 1.8'
+  s.add_dependency 'nokogiri', '~> 1.10'
+  s.add_dependency 'rest-client', '~> 2.1'
   s.add_development_dependency 'rake', '~> 10.1'
   s.add_development_dependency 'rspec', '~> 3.3'
 
