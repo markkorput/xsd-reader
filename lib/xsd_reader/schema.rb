@@ -19,12 +19,12 @@ module XsdReader
     end
 
     def imports
-      @imports ||= map_children("import")
+      @imports ||= map_children('import') + map_children('include')
     end
 
     def mappable_children(xml_name)
       result = super
-      result += import_mappable_children(xml_name) if xml_name != 'import'
+      result += import_mappable_children(xml_name) unless %w[include import].include?(xml_name)
       return result.to_a
     end
 
